@@ -136,8 +136,15 @@
   }
   /* 강의 현장 사진: 인물이 상단쪽에 위치 */
   .hero-bg.lecture{ background-position:center top; }
-  /* 프로필 사진: 전신 스튜디오 컷, 얼굴이 잘 보이도록 */
-  .hero-bg.profile{ background-position:center top; }
+  /* 프로필 사진: 세로로 긴 전신 스튜디오 컷이라 cover로 채우면
+     얼굴 일부만 과도하게 확대되어 보인다. PC/모바일 모두 전체
+     인물이 그대로 보이도록 항상 레터박스(contain)로 표시한다. */
+  .hero-bg.profile{
+    background-position:center top;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-color: var(--navy-deep);
+  }
 
   .hero-bg.b1{ background-image:url('images/photo-2.jpg'); animation-delay:0s,0s; }
   .hero-bg.b2{ background-image:url('images/photo-1.jpg'); animation-delay:-7.5s,-7.5s; }
@@ -295,10 +302,6 @@
   .venue-cat p{ font-size:13.6px; color:var(--slate); line-height:1.85; }
 
   /* CREDENTIALS */
-  .credentials{ padding:92px 0; background:var(--paper); }
-  .cred-cols{ display:grid; grid-template-columns:1fr 1fr; gap:52px; }
-  .cred-cols h4{ font-size:14.5px; color:var(--navy); font-weight:600; margin-bottom:15px; }
-  .cred-cols p{ font-size:14px; color:var(--slate); line-height:1.95; }
 
   /* CONTACT / FORM */
   .contact{ padding:100px 0; background:var(--navy-deep); color:#fff; }
@@ -365,7 +368,6 @@
     .now-panel h3{ font-size:21px; }
     .cform h3{ font-size:22px; }
     .venue-cat h4{ font-size:17.5px; }
-    .cred-cols h4{ font-size:18px; }
     .t-item h4{ font-size:20px; }
     .exp-list .t{ font-size:18px; }
     .exp-list .idx{ font-size:16.5px; }
@@ -380,7 +382,6 @@
     .t-item p{ font-size:16.5px; }
     .now-grid div{ font-size:16.5px; }
     .venue-cat p{ font-size:16.5px; }
-    .cred-cols p{ font-size:16.5px; }
     .cform .desc{ font-size:16.5px; }
     .field label{ font-size:16.5px; }
     .field input, .field select, .field textarea{ font-size:16.5px; }
@@ -419,7 +420,6 @@
     .career-photo img{ position:static; margin-top:24px; }
     .now-grid{ grid-template-columns:1fr; }
     .venue-grid{ grid-template-columns:repeat(2,1fr); row-gap:30px; }
-    .cred-cols{ grid-template-columns:1fr; gap:30px; }
     .form-row{ grid-template-columns:1fr; }
   }
 </style>
@@ -433,7 +433,6 @@
         <button type="button" data-target="expertise">전문분야</button>
         <button type="button" data-target="career">경력</button>
         <button type="button" data-target="venues">출강처</button>
-        <button type="button" data-target="credentials">자격</button>
         <button type="button" data-target="contact">문의</button>
       </nav>
     </div>
@@ -596,31 +595,6 @@
         <div class="venue-cat">
           <h4>고등학교</h4>
           <p>세그루패션디자인고 · 정화고 · 인천디자인고 · 인천제일고 · 제물포고 · 도화기계공업고</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- CREDENTIALS -->
-  <section class="credentials" id="credentials">
-    <div class="wrap">
-      <div class="sec-head">
-        <div class="kicker">Education & Certifications</div>
-        <h2>학력 및 자격사항</h2>
-      </div>
-      <div class="cred-cols">
-        <div>
-          <h4>학력</h4>
-          <p>
-            성결대학교 경영행정대학원 직업학과 석사<br>
-            국립서울과학기술대학교 조형학부(공업디자인) 학사
-          </p>
-        </div>
-        <div>
-          <h4>자격 및 전문교육</h4>
-          <p>
-            직업상담사 2급 · 사회복지사 2급 · 청소년지도사 2급 · 진로적성상담사 2급 · 미술심리상담사 2급 · 음악심리상담사 2급 · 애니어그램 전문강사 · 프레디저 전문강사 · TA전문과정 · 이미지메이킹스피치 전문강사 · 프레젠테이션 스피치 강사 · 퍼스널컬러 컨설턴트 · MBTI · DISC 강사
-          </p>
         </div>
       </div>
     </div>
