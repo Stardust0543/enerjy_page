@@ -279,6 +279,10 @@
     border-bottom:1px solid rgba(255,255,255,0.14);
     scrollbar-width:thin;
     scrollbar-color:rgba(255,255,255,0.25) transparent;
+    /* 활성 프레임 높이로 고정 — 흑백↔컬러 전환 중 두 프레임의 높이가
+       동시에 늘고 줄면서 트랙(배경 영역) 높이가 순간적으로 줄었다 늘어나는
+       현상을 막는다. 프레임들은 이 고정 높이 안에서 항상 수직 중앙 정렬된다. */
+    height:320px;
   }
   .filmstrip-track.is-dragging{ cursor:grabbing; }
   .filmstrip-track::-webkit-scrollbar{ height:5px; }
@@ -332,6 +336,7 @@
   .film-hint{ margin-top:14px; font-size:12px; color:#7C8494; }
 
   @media (min-width:901px){
+    .filmstrip-track{ height:420px; }
     .filmstrip-frame{ height:105px; } /* 420px의 1/4 */
     .filmstrip-frame.is-active{ height:420px; }
     .frame-meta .frame-no{ font-size:12.5px; }
@@ -340,9 +345,9 @@
   }
 
   @media (max-width:900px){
+    .filmstrip-track{ height:240px; padding:22px max(20px, 45vw) 30px; gap:9px; }
     .filmstrip-frame{ height:60px; } /* 240px의 1/4 */
     .filmstrip-frame.is-active{ height:240px; }
-    .filmstrip-track{ padding:22px max(20px, 45vw) 30px; gap:9px; }
   }
 
   @media (prefers-reduced-motion: reduce){
@@ -910,6 +915,43 @@
         track.scrollTo({ left: track.scrollLeft + delta, behavior: behavior || 'smooth' });
       }
 
+      // 프레임이 흑백(작은 높이)↔컬러(큰 높이)로 바뀌는 동안에는 대상 프레임의
+      // 실제 위치(너비)가 트랜지션 내내 계속 바뀐다. 트랜지션 시작 시점의(아직
+      // 작은) 크기를 기준으로 한 번만 계산해서 스크롤하면(예전 방식) 크기가
+      // 달라진 만큼 위치가 어긋나, 트랜지션이 끝난 뒤 다시 한번 보정하게 되어
+      // 사진이 옆으로 살짝 밀렸다가 중앙으로 튀어 보이는 문제가 있었다.
+      // 실시간 DOM 측정을 매 프레임 뒤쫓는 방식도 시도해봤지만 브라우저 성능에
+      // 따라 보정이 밀리면 똑같이 튀어 보일 수 있어, 대신 "전환이 끝났을 때"의
+      // 최종 위치를 각 프레임의 확정된 높이·비율·간격만으로 미리 계산해 한 번에
+      // 그 위치로 스크롤한다 — 트랜지션 도중의 중간 크기를 볼 필요가 아예 없다.
+      function activeHeightPx() { return window.matchMedia('(min-width:901px)').matches ? 420 : 240; }
+      function inactiveHeightPx() { return window.matchMedia('(min-width:901px)').matches ? 105 : 60; }
+      function currentGapPx() { return window.matchMedia('(min-width:901px)').matches ? 12 : 9; }
+
+      function finalScrollLeftFor(targetEl) {
+        const H_ACTIVE = activeHeightPx();
+        const H_INACTIVE = inactiveHeightPx();
+        const gap = currentGapPx();
+        const paddingLeft = parseFloat(getComputedStyle(track).paddingLeft) || 0;
+        let x = 0, targetLeft = 0, targetWidth = 0;
+        allEls().forEach((el) => {
+          const ar = parseFloat(el.style.getPropertyValue('--ar')) || 1.4;
+          const isTarget = (el === targetEl);
+          const w = (isTarget ? H_ACTIVE : H_INACTIVE) * ar;
+          if (isTarget) { targetLeft = x; targetWidth = w; }
+          x += w + gap;
+        });
+        const trackRect = track.getBoundingClientRect();
+        const contentCenterX = paddingLeft + targetLeft + targetWidth / 2;
+        return contentCenterX - trackRect.width / 2;
+      }
+
+      // el이 활성화되어 최종 크기까지 커진(또는 다른 프레임이 작아진) 뒤의
+      // 위치를 기준으로 스크롤한다 — 크기 트랜지션을 동반하는 이동에 사용
+      function centerOnFinal(el, behavior) {
+        track.scrollTo({ left: finalScrollLeftFor(el), behavior: prefersReducedMotion ? 'auto' : (behavior || 'smooth') });
+      }
+
       // 지금 화면 중앙의 활성 프레임이 복제본이면, 실제로 같은 사진인 진짜 프레임
       // 쪽으로 스크롤 위치만 화면 변화 없이 순간 이동시킨다(복제본↔실제 프레임은
       // 둘레 사진까지 똑같아 보이도록 만들어 두었기 때문에 티가 나지 않는다).
@@ -945,7 +987,7 @@
         else targetEl = frames[(activeIndex + direction + n) % n];
         intentionalNav = true;
         setActive(targetEl);
-        centerOn(targetEl, 'smooth');
+        centerOnFinal(targetEl);
       }
 
       // 클릭/자동재생/키보드 등 "목표가 분명한 이동"이 끝난 뒤 마무리 처리:
@@ -977,9 +1019,12 @@
       // 가장 가까운 프레임에 정확히 맞춘 다음 자동 재생을 다시 예약한다
       function settleAndSchedule() {
         resolveCloneIfNeeded();
+        const before = activeEl;
         setActive(getClosestEl());
+        const changedActive = activeEl !== before;
         resolveCloneIfNeeded();
-        centerOn(activeEl, 'smooth');
+        if (changedActive) centerOnFinal(activeEl);
+        else centerOn(activeEl, 'smooth');
         maybeScheduleNext();
       }
 
@@ -1029,7 +1074,7 @@
           if (moved) return; // 드래그 끝에 발생한 클릭은 무시
           intentionalNav = true;
           setActive(el);
-          centerOn(el, 'smooth');
+          centerOnFinal(el);
         });
       });
 
