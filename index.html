@@ -257,6 +257,82 @@
   .phil-center .sub{ margin-top:22px; color:var(--slate); font-size:15.5px; }
   .phil-center .attr{ margin-top:24px; font-size:13.5px; color:var(--slate-light); }
 
+  /* FILM STRIP GALLERY */
+  .film-strip{ padding:88px 0 92px; background:var(--navy-deep); overflow:hidden; }
+  .film-strip .sec-head{ max-width:640px; }
+  .film-strip .sec-head .kicker{ color:var(--wine-light); }
+  .film-strip .sec-head h2{ color:#fff; }
+  .film-strip .sec-head p{ color:#AEB6C2; }
+
+  .filmstrip-track{
+    margin-top:48px;
+    display:flex;
+    gap:2px;
+    overflow-x:auto;
+    overscroll-behavior-x:contain;
+    scroll-snap-type:x mandatory;
+    -webkit-overflow-scrolling:touch;
+    cursor:grab;
+    padding:0 32px 22px;
+    border-top:1px solid rgba(255,255,255,0.14);
+    border-bottom:1px solid rgba(255,255,255,0.14);
+    scrollbar-width:thin;
+    scrollbar-color:rgba(255,255,255,0.25) transparent;
+  }
+  .filmstrip-track.is-dragging{ cursor:grabbing; scroll-snap-type:none; }
+  .filmstrip-track::-webkit-scrollbar{ height:5px; }
+  .filmstrip-track::-webkit-scrollbar-thumb{ background:rgba(255,255,255,0.2); }
+  .filmstrip-track::-webkit-scrollbar-track{ background:transparent; }
+
+  .filmstrip-frame{
+    position:relative;
+    flex:0 0 auto;
+    height:320px;
+    aspect-ratio:var(--ar, 1.4);
+    scroll-snap-align:center;
+    overflow:hidden;
+    background:#04101F;
+  }
+  .filmstrip-frame img{
+    display:block; height:100%; width:100%;
+    object-fit:cover;
+    filter:grayscale(1) contrast(1.03);
+    transition:filter .6s ease;
+    -webkit-user-drag:none; user-select:none;
+    pointer-events:none;
+  }
+  .filmstrip-frame:hover img,
+  .filmstrip-frame.is-active img{ filter:grayscale(0) contrast(1); }
+
+  .frame-meta{
+    position:absolute; left:0; right:0; bottom:0;
+    padding:9px 11px 8px;
+    background:linear-gradient(180deg, rgba(4,10,20,0) 0%, rgba(4,10,20,0.55) 55%, rgba(4,10,20,0.82) 100%);
+    display:flex; align-items:baseline; gap:9px;
+    white-space:nowrap;
+  }
+  .frame-meta .frame-no{
+    font-family:'Pretendard Variable',serif; font-size:11px; font-weight:600;
+    color:var(--wine-light); letter-spacing:.03em; flex:none;
+  }
+  .frame-meta .frame-cap{
+    font-size:11.5px; color:#E7EAF0; font-weight:500;
+    overflow:hidden; text-overflow:ellipsis;
+  }
+  .film-hint{ margin-top:14px; font-size:12px; color:#7C8494; }
+
+  @media (min-width:901px){
+    .filmstrip-frame{ height:420px; }
+    .frame-meta .frame-no{ font-size:12.5px; }
+    .frame-meta .frame-cap{ font-size:13.5px; }
+    .film-hint{ font-size:13.5px; }
+  }
+
+  @media (max-width:900px){
+    .filmstrip-frame{ height:240px; scroll-snap-align:center; }
+    .filmstrip-track{ padding:0 20px 18px; }
+  }
+
   /* EXPERTISE */
   .expertise{ padding:96px 0; background:var(--paper-deep); }
   .exp-grid{ display:grid; grid-template-columns:1.05fr 0.95fr; gap:56px; align-items:start; }
@@ -485,6 +561,41 @@
     </div>
   </section>
 
+  <!-- FILM STRIP GALLERY -->
+  <section class="film-strip" id="gallery">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="kicker">On Site</div>
+        <h2>현장에서 담아온 순간들</h2>
+        <p>2018년부터 지금까지, 강의와 워크숍 현장의 기록입니다.</p>
+      </div>
+    </div>
+
+    <div class="filmstrip-track" id="filmstripTrack" tabindex="0" aria-label="강의 및 워크숍 현장 사진 20장, 좌우로 드래그하거나 스크롤해서 볼 수 있습니다">
+      <figure class="filmstrip-frame" style="--ar:1.333"><img src="images/gallery-01.jpg" alt="2018.06.22 현장 강의" loading="lazy" draggable="false"><figcaption class="frame-meta"><span class="frame-no">No.01</span><span class="frame-cap">현장 강의 · 2018.06.22</span></figcaption></figure>
+      <figure class="filmstrip-frame" style="--ar:1.333"><img src="images/gallery-02.jpg" alt="2018.06.27 현장 강의" loading="lazy" draggable="false"><figcaption class="frame-meta"><span class="frame-no">No.02</span><span class="frame-cap">현장 강의 · 2018.06.27</span></figcaption></figure>
+      <figure class="filmstrip-frame" style="--ar:1.333"><img src="images/gallery-03.jpg" alt="2018.07.06 현장 강의" loading="lazy" draggable="false"><figcaption class="frame-meta"><span class="frame-no">No.03</span><span class="frame-cap">현장 강의 · 2018.07.06</span></figcaption></figure>
+      <figure class="filmstrip-frame" style="--ar:1.333"><img src="images/gallery-04.jpg" alt="2018.07.12 간담회" loading="lazy" draggable="false"><figcaption class="frame-meta"><span class="frame-no">No.04</span><span class="frame-cap">간담회 · 2018.07.12</span></figcaption></figure>
+      <figure class="filmstrip-frame" style="--ar:1.333"><img src="images/gallery-05.jpg" alt="2018.07.13 현장 강의" loading="lazy" draggable="false"><figcaption class="frame-meta"><span class="frame-no">No.05</span><span class="frame-cap">현장 강의 · 2018.07.13</span></figcaption></figure>
+      <figure class="filmstrip-frame" style="--ar:1.333"><img src="images/gallery-06.jpg" alt="2018.07.16 현장 강의" loading="lazy" draggable="false"><figcaption class="frame-meta"><span class="frame-no">No.06</span><span class="frame-cap">현장 강의 · 2018.07.16</span></figcaption></figure>
+      <figure class="filmstrip-frame" style="--ar:1.333"><img src="images/gallery-07.jpg" alt="2018.07.17 현장 강의" loading="lazy" draggable="false"><figcaption class="frame-meta"><span class="frame-no">No.07</span><span class="frame-cap">현장 강의 · 2018.07.17</span></figcaption></figure>
+      <figure class="filmstrip-frame" style="--ar:1.333"><img src="images/gallery-08.jpg" alt="2018.07.18 현장 강의" loading="lazy" draggable="false"><figcaption class="frame-meta"><span class="frame-no">No.08</span><span class="frame-cap">현장 강의 · 2018.07.18</span></figcaption></figure>
+      <figure class="filmstrip-frame" style="--ar:1.333"><img src="images/gallery-09.jpg" alt="2018.07.23 교육 자료" loading="lazy" draggable="false"><figcaption class="frame-meta"><span class="frame-no">No.09</span><span class="frame-cap">교육 자료 · 2018.07.23</span></figcaption></figure>
+      <figure class="filmstrip-frame" style="--ar:1.333"><img src="images/gallery-10.jpg" alt="2018.07.27 현장 강의" loading="lazy" draggable="false"><figcaption class="frame-meta"><span class="frame-no">No.10</span><span class="frame-cap">현장 강의 · 2018.07.27</span></figcaption></figure>
+      <figure class="filmstrip-frame" style="--ar:1.333"><img src="images/gallery-11.jpg" alt="2018.07.30 실습 강의" loading="lazy" draggable="false"><figcaption class="frame-meta"><span class="frame-no">No.11</span><span class="frame-cap">실습 강의 · 2018.07.30</span></figcaption></figure>
+      <figure class="filmstrip-frame" style="--ar:1.332"><img src="images/gallery-12.jpg" alt="2026.09 진로 워크숍" loading="lazy" draggable="false"><figcaption class="frame-meta"><span class="frame-no">No.12</span><span class="frame-cap">진로 워크숍 · 2026.09</span></figcaption></figure>
+      <figure class="filmstrip-frame" style="--ar:1.332"><img src="images/gallery-13.jpg" alt="2026.09 워크숍 활동 자료" loading="lazy" draggable="false"><figcaption class="frame-meta"><span class="frame-no">No.13</span><span class="frame-cap">워크숍 활동 자료 · 2026.09</span></figcaption></figure>
+      <figure class="filmstrip-frame" style="--ar:1.332"><img src="images/gallery-14.jpg" alt="2026.09 진로 워크숍" loading="lazy" draggable="false"><figcaption class="frame-meta"><span class="frame-no">No.14</span><span class="frame-cap">진로 워크숍 · 2026.09</span></figcaption></figure>
+      <figure class="filmstrip-frame" style="--ar:1.332"><img src="images/gallery-15.jpg" alt="2026.09 워크숍 활동 자료" loading="lazy" draggable="false"><figcaption class="frame-meta"><span class="frame-no">No.15</span><span class="frame-cap">워크숍 활동 자료 · 2026.09</span></figcaption></figure>
+      <figure class="filmstrip-frame" style="--ar:1.332"><img src="images/gallery-16.jpg" alt="2026.09 그룹 활동" loading="lazy" draggable="false"><figcaption class="frame-meta"><span class="frame-no">No.16</span><span class="frame-cap">그룹 활동 · 2026.09</span></figcaption></figure>
+      <figure class="filmstrip-frame" style="--ar:0.75"><img src="images/gallery-17.jpg" alt="2026.09 워크숍 활동 자료" loading="lazy" draggable="false"><figcaption class="frame-meta"><span class="frame-no">No.17</span><span class="frame-cap">워크숍 활동 자료 · 2026.09</span></figcaption></figure>
+      <figure class="filmstrip-frame" style="--ar:0.75"><img src="images/gallery-18.jpg" alt="2026.09 진로 워크숍" loading="lazy" draggable="false"><figcaption class="frame-meta"><span class="frame-no">No.18</span><span class="frame-cap">진로 워크숍 · 2026.09</span></figcaption></figure>
+      <figure class="filmstrip-frame" style="--ar:0.75"><img src="images/gallery-19.jpg" alt="2026.09 워크숍 활동 자료" loading="lazy" draggable="false"><figcaption class="frame-meta"><span class="frame-no">No.19</span><span class="frame-cap">워크숍 활동 자료 · 2026.09</span></figcaption></figure>
+      <figure class="filmstrip-frame" style="--ar:1.332"><img src="images/gallery-20.jpg" alt="2026.09 진로 워크숍" loading="lazy" draggable="false"><figcaption class="frame-meta"><span class="frame-no">No.20</span><span class="frame-cap">진로 워크숍 · 2026.09</span></figcaption></figure>
+    </div>
+    <div class="wrap"><p class="film-hint">드래그하거나 스크롤해서 넘겨보세요</p></div>
+  </section>
+
   <!-- EXPERTISE -->
   <section class="expertise" id="expertise">
     <div class="wrap">
@@ -698,6 +809,65 @@
         window.scrollTo({ top, behavior: 'smooth' });
       });
     });
+  </script>
+
+  <!-- 필름 스트립 갤러리: 드래그 스크롤 + 화면 중앙 프레임 컬러 전환(모바일 스냅) -->
+  <script>
+    (function () {
+      const track = document.getElementById('filmstripTrack');
+      if (!track) return;
+      const frames = Array.from(track.querySelectorAll('.filmstrip-frame'));
+
+      // 1) 드래그해서 넘기기 (데스크톱 마우스)
+      let isDown = false, startX = 0, startScroll = 0, moved = false;
+      track.addEventListener('mousedown', (e) => {
+        isDown = true; moved = false;
+        startX = e.pageX;
+        startScroll = track.scrollLeft;
+        track.classList.add('is-dragging');
+      });
+      window.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        const dx = e.pageX - startX;
+        if (Math.abs(dx) > 4) moved = true;
+        track.scrollLeft = startScroll - dx;
+      });
+      window.addEventListener('mouseup', () => {
+        if (!isDown) return;
+        isDown = false;
+        track.classList.remove('is-dragging');
+      });
+      // 드래그 도중 이미지가 링크처럼 클릭되는 것 방지
+      track.addEventListener('click', (e) => { if (moved) e.preventDefault(); }, true);
+
+      // 2) 화면(트랙) 중앙에 온 프레임을 컬러로 전환 — 터치 스크롤 스냅 대응
+      let ticking = false;
+      function updateActiveFrame() {
+        ticking = false;
+        const trackRect = track.getBoundingClientRect();
+        const center = trackRect.left + trackRect.width / 2;
+        let closest = null, closestDist = Infinity;
+        frames.forEach((f) => {
+          const r = f.getBoundingClientRect();
+          const dist = Math.abs((r.left + r.width / 2) - center);
+          if (dist < closestDist) { closestDist = dist; closest = f; }
+        });
+        frames.forEach((f) => f.classList.toggle('is-active', f === closest));
+      }
+      track.addEventListener('scroll', () => {
+        if (!ticking) { ticking = true; requestAnimationFrame(updateActiveFrame); }
+      }, { passive: true });
+      window.addEventListener('resize', updateActiveFrame);
+      updateActiveFrame();
+
+      // 3) 키보드 좌우 화살표로 한 프레임씩 이동 (접근성)
+      track.addEventListener('keydown', (e) => {
+        if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+        e.preventDefault();
+        const dir = e.key === 'ArrowRight' ? 1 : -1;
+        track.scrollBy({ left: dir * (track.clientWidth * 0.6), behavior: 'smooth' });
+      });
+    })();
   </script>
 
   <!-- Formspree (강의·자문 문의 폼) — 페이지 이동 없이 인라인으로 성공/에러 메시지 표시 -->
