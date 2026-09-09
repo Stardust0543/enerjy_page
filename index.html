@@ -267,19 +267,20 @@
   .filmstrip-track{
     margin-top:48px;
     display:flex;
-    gap:2px;
+    align-items:center;
+    gap:12px;
     overflow-x:auto;
+    overflow-y:hidden;
     overscroll-behavior-x:contain;
-    scroll-snap-type:x mandatory;
     -webkit-overflow-scrolling:touch;
     cursor:grab;
-    padding:0 32px 22px;
+    padding:34px 32px 40px;
     border-top:1px solid rgba(255,255,255,0.14);
     border-bottom:1px solid rgba(255,255,255,0.14);
     scrollbar-width:thin;
     scrollbar-color:rgba(255,255,255,0.25) transparent;
   }
-  .filmstrip-track.is-dragging{ cursor:grabbing; scroll-snap-type:none; }
+  .filmstrip-track.is-dragging{ cursor:grabbing; }
   .filmstrip-track::-webkit-scrollbar{ height:5px; }
   .filmstrip-track::-webkit-scrollbar-thumb{ background:rgba(255,255,255,0.2); }
   .filmstrip-track::-webkit-scrollbar-track{ background:transparent; }
@@ -289,9 +290,19 @@
     flex:0 0 auto;
     height:320px;
     aspect-ratio:var(--ar, 1.4);
-    scroll-snap-align:center;
     overflow:hidden;
     background:#04101F;
+    transform:scale(0.88);
+    transform-origin:center center;
+    z-index:1;
+    cursor:pointer;
+    transition:transform .5s cubic-bezier(.22,.68,.36,1);
+  }
+  .filmstrip-frame.is-active{ cursor:default; }
+  .filmstrip-frame.is-active{
+    transform:scale(1.15);
+    z-index:2;
+    box-shadow:0 18px 40px -12px rgba(0,0,0,0.55);
   }
   .filmstrip-frame img{
     display:block; height:100%; width:100%;
@@ -329,8 +340,12 @@
   }
 
   @media (max-width:900px){
-    .filmstrip-frame{ height:240px; scroll-snap-align:center; }
-    .filmstrip-track{ padding:0 20px 18px; }
+    .filmstrip-frame{ height:240px; }
+    .filmstrip-track{ padding:22px 20px 30px; gap:9px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .filmstrip-frame{ transition:none; }
   }
 
   /* EXPERTISE */
@@ -811,62 +826,154 @@
     });
   </script>
 
-  <!-- 필름 스트립 갤러리: 드래그 스크롤 + 화면 중앙 프레임 컬러 전환(모바일 스냅) -->
+  <!-- 필름 스트립 갤러리: 한 칸씩 이동하는 자동 재생 + 드래그 스크롤 + 클릭으로 중앙 이동 -->
   <script>
     (function () {
       const track = document.getElementById('filmstripTrack');
       if (!track) return;
       const frames = Array.from(track.querySelectorAll('.filmstrip-frame'));
+      if (!frames.length) return;
 
-      // 1) 드래그해서 넘기기 (데스크톱 마우스)
-      let isDown = false, startX = 0, startScroll = 0, moved = false;
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const STEP_DELAY = 2000; // 가운데(컬러) 프레임이 머무는 시간(ms)
+      const SETTLE_DELAY = 160; // 스크롤이 멈췄다고 판단하기까지의 대기 시간(ms)
+
+      let activeIndex = 0;
+      let hovering = false;   // 마우스가 갤러리(사진) 위에 올라와 있는 동안
+      let dragging = false;   // 마우스로 드래그하는 동안
+      let scrolling = false;  // 드래그/휠/터치 등으로 실제 스크롤이 일어나는 동안
+      let focused = false;    // 키보드 포커스가 갤러리 안에 있는 동안
+      let advanceTimer = null;
+      let settleTimer = null;
+
+      // 트랙 중앙에 가장 가까운 프레임의 인덱스를 구한다
+      function getClosestIndex() {
+        const trackRect = track.getBoundingClientRect();
+        const center = trackRect.left + trackRect.width / 2;
+        let closestIdx = 0, closestDist = Infinity;
+        frames.forEach((f, i) => {
+          const r = f.getBoundingClientRect();
+          const dist = Math.abs((r.left + r.width / 2) - center);
+          if (dist < closestDist) { closestDist = dist; closestIdx = i; }
+        });
+        return closestIdx;
+      }
+
+      // 지정한 인덱스의 프레임을 트랙 중앙으로 부드럽게 이동시키고 컬러/확대로 표시한다
+      function goToFrame(index, behavior) {
+        const n = frames.length;
+        index = ((index % n) + n) % n;
+        activeIndex = index;
+        frames.forEach((f, i) => f.classList.toggle('is-active', i === index));
+        const trackRect = track.getBoundingClientRect();
+        const frameRect = frames[index].getBoundingClientRect();
+        const delta = (frameRect.left + frameRect.width / 2) - (trackRect.left + trackRect.width / 2);
+        track.scrollTo({ left: track.scrollLeft + delta, behavior: behavior || 'smooth' });
+      }
+
+      function pauseAutoplay() {
+        clearTimeout(advanceTimer);
+        advanceTimer = null;
+      }
+
+      // 정지 조건이 모두 풀렸을 때만 "2초 뒤 한 칸 이동"을 예약한다
+      function maybeScheduleNext() {
+        pauseAutoplay();
+        if (hovering || dragging || scrolling || focused) return;
+        if (prefersReducedMotion || document.visibilityState !== 'visible') return;
+        advanceTimer = setTimeout(() => {
+          goToFrame(activeIndex + 1);
+          maybeScheduleNext();
+        }, STEP_DELAY);
+      }
+
+      // 사용자가 스크롤을 멈추면 가장 가까운 프레임에 정확히 맞추고 자동 재생을 재개한다
+      function snapAndSchedule() {
+        goToFrame(getClosestIndex());
+        maybeScheduleNext();
+      }
+
+      // 1) 드래그해서 넘기기 (데스크톱 마우스) — 기존 기능 유지
+      let startX = 0, startScroll = 0, moved = false;
       track.addEventListener('mousedown', (e) => {
-        isDown = true; moved = false;
+        // 마우스 클릭/드래그로 트랙에 키보드 포커스가 걸리는 것을 막는다.
+        // (포커스가 남으면 마우스가 갤러리를 벗어난 뒤에도 focus 기반 정지 상태가
+        //  풀리지 않아 자동 재생이 다시 시작되지 않는 문제가 있었다.)
+        e.preventDefault();
+        dragging = true; moved = false;
         startX = e.pageX;
         startScroll = track.scrollLeft;
         track.classList.add('is-dragging');
+        pauseAutoplay();
       });
       window.addEventListener('mousemove', (e) => {
-        if (!isDown) return;
+        if (!dragging) return;
         const dx = e.pageX - startX;
         if (Math.abs(dx) > 4) moved = true;
         track.scrollLeft = startScroll - dx;
       });
       window.addEventListener('mouseup', () => {
-        if (!isDown) return;
-        isDown = false;
+        if (!dragging) return;
+        dragging = false;
         track.classList.remove('is-dragging');
+        clearTimeout(settleTimer);
+        scrolling = false;
+        snapAndSchedule();
       });
       // 드래그 도중 이미지가 링크처럼 클릭되는 것 방지
       track.addEventListener('click', (e) => { if (moved) e.preventDefault(); }, true);
 
-      // 2) 화면(트랙) 중앙에 온 프레임을 컬러로 전환 — 터치 스크롤 스냅 대응
-      let ticking = false;
-      function updateActiveFrame() {
-        ticking = false;
-        const trackRect = track.getBoundingClientRect();
-        const center = trackRect.left + trackRect.width / 2;
-        let closest = null, closestDist = Infinity;
-        frames.forEach((f) => {
-          const r = f.getBoundingClientRect();
-          const dist = Math.abs((r.left + r.width / 2) - center);
-          if (dist < closestDist) { closestDist = dist; closest = f; }
+      // 2) 좌우의 흑백 사진을 클릭/터치하면 해당 사진이 중앙으로 이동해 컬러로 확대된다
+      frames.forEach((frame, i) => {
+        frame.addEventListener('click', () => {
+          if (moved) return; // 드래그 끝에 발생한 클릭은 무시
+          goToFrame(i);
         });
-        frames.forEach((f) => f.classList.toggle('is-active', f === closest));
-      }
-      track.addEventListener('scroll', () => {
-        if (!ticking) { ticking = true; requestAnimationFrame(updateActiveFrame); }
-      }, { passive: true });
-      window.addEventListener('resize', updateActiveFrame);
-      updateActiveFrame();
+      });
 
-      // 3) 키보드 좌우 화살표로 한 프레임씩 이동 (접근성)
+      // 3) PC에서 마우스가 갤러리(사진) 위에 있는 동안은 자동 재생을 멈추고,
+      //    벗어나면 다시 이어서 진행한다
+      track.addEventListener('mouseenter', () => {
+        hovering = true;
+        pauseAutoplay();
+      });
+      track.addEventListener('mouseleave', () => {
+        hovering = false;
+        if (!dragging) maybeScheduleNext();
+      });
+
+      // 4) 키보드 좌우 화살표로 한 프레임씩 이동 (접근성) — 포커스 중에는 자동 재생 정지
       track.addEventListener('keydown', (e) => {
         if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
         e.preventDefault();
-        const dir = e.key === 'ArrowRight' ? 1 : -1;
-        track.scrollBy({ left: dir * (track.clientWidth * 0.6), behavior: 'smooth' });
+        goToFrame(activeIndex + (e.key === 'ArrowRight' ? 1 : -1));
       });
+      track.addEventListener('focus', () => { focused = true; pauseAutoplay(); });
+      track.addEventListener('blur', () => { focused = false; maybeScheduleNext(); });
+
+      // 5) 휠/터치 스크롤 등 그 밖의 모든 스크롤: 스크롤 중엔 자동 재생을 멈추고,
+      //    스크롤이 멈추면(SETTLE_DELAY 동안 추가 스크롤 없음) 가장 가까운 프레임에 맞춘다
+      track.addEventListener('scroll', () => {
+        scrolling = true;
+        pauseAutoplay();
+        clearTimeout(settleTimer);
+        settleTimer = setTimeout(() => {
+          scrolling = false;
+          if (!dragging) snapAndSchedule();
+        }, SETTLE_DELAY);
+      }, { passive: true });
+
+      // 탭이 백그라운드로 가면 멈추고, 다시 보이면 이어서 진행한다
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') maybeScheduleNext();
+        else pauseAutoplay();
+      });
+
+      window.addEventListener('resize', () => goToFrame(activeIndex, 'auto'));
+
+      // 초기 상태: 첫 프레임을 중앙에 맞추고 자동 재생 시작
+      goToFrame(0, 'auto');
+      maybeScheduleNext();
     })();
   </script>
 
