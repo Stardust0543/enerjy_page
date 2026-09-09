@@ -274,7 +274,7 @@
     overscroll-behavior-x:contain;
     -webkit-overflow-scrolling:touch;
     cursor:grab;
-    padding:34px 32px 40px;
+    padding:34px max(32px, 45vw) 40px;
     border-top:1px solid rgba(255,255,255,0.14);
     border-bottom:1px solid rgba(255,255,255,0.14);
     scrollbar-width:thin;
@@ -288,19 +288,18 @@
   .filmstrip-frame{
     position:relative;
     flex:0 0 auto;
-    height:320px;
+    height:80px; /* 중앙이 아닌(흑백) 프레임 — 활성 크기(320px)의 1/4 */
     aspect-ratio:var(--ar, 1.4);
     overflow:hidden;
     background:#04101F;
-    transform:scale(0.88);
     transform-origin:center center;
     z-index:1;
     cursor:pointer;
-    transition:transform .5s cubic-bezier(.22,.68,.36,1);
+    transition:height .5s cubic-bezier(.22,.68,.36,1);
   }
-  .filmstrip-frame.is-active{ cursor:default; }
   .filmstrip-frame.is-active{
-    transform:scale(1.15);
+    height:320px;
+    cursor:default;
     z-index:2;
     box-shadow:0 18px 40px -12px rgba(0,0,0,0.55);
   }
@@ -333,20 +332,25 @@
   .film-hint{ margin-top:14px; font-size:12px; color:#7C8494; }
 
   @media (min-width:901px){
-    .filmstrip-frame{ height:420px; }
+    .filmstrip-frame{ height:105px; } /* 420px의 1/4 */
+    .filmstrip-frame.is-active{ height:420px; }
     .frame-meta .frame-no{ font-size:12.5px; }
     .frame-meta .frame-cap{ font-size:13.5px; }
     .film-hint{ font-size:13.5px; }
   }
 
   @media (max-width:900px){
-    .filmstrip-frame{ height:240px; }
-    .filmstrip-track{ padding:22px 20px 30px; gap:9px; }
+    .filmstrip-frame{ height:60px; } /* 240px의 1/4 */
+    .filmstrip-frame.is-active{ height:240px; }
+    .filmstrip-track{ padding:22px max(20px, 45vw) 30px; gap:9px; }
   }
 
   @media (prefers-reduced-motion: reduce){
     .filmstrip-frame{ transition:none; }
   }
+
+  /* 복제본↔실제 프레임을 바꿔치기하는 순간에만 확대/축소 트랜지션을 잠깐 끈다 */
+  .filmstrip-frame.no-anim{ transition:none !important; }
 
   /* EXPERTISE */
   .expertise{ padding:96px 0; background:var(--paper-deep); }
@@ -870,6 +874,12 @@
       let advanceTimer = null;
       let settleTimer = null;
       let liveTicking = false;
+      // 클릭/자동재생/키보드처럼 "이 프레임으로 이동" 이 명확히 정해진 이동인 동안 true.
+      // 프레임이 실제 레이아웃 크기(높이·너비)로 커지고 작아지기 때문에, 애니메이션이
+      // 진행되는 도중에는 "지금 중앙에 가장 가까운 프레임"이 목표와 다른 프레임으로
+      // 일시적으로 바뀌어 보일 수 있다 — 그 사이에는 자동으로 활성 프레임을 다시
+      // 고르지 않고, 처음에 정한 목표를 그대로 유지한다.
+      let intentionalNav = false;
 
       // 현재 스크롤 위치와 무관한, 트랙 콘텐츠 기준 x좌표 (스크롤에 따라 값이 변하지 않는다)
       function contentX(el) { return el.getBoundingClientRect().left + track.scrollLeft; }
@@ -905,11 +915,23 @@
       // 둘레 사진까지 똑같아 보이도록 만들어 두었기 때문에 티가 나지 않는다).
       function resolveCloneIfNeeded() {
         if (activeEl.dataset.realIndex === undefined) return;
-        const real = frames[Number(activeEl.dataset.realIndex)];
-        const delta = contentX(real) - contentX(activeEl);
-        activeEl.classList.remove('is-active');
-        track.scrollLeft += delta;
+        const clone = activeEl;
+        const real = frames[Number(clone.dataset.realIndex)];
+        // 프레임 크기는 확대/축소 트랜지션이 걸려 있어서, 지금 막 확대된 복제본과
+        // 아직 축소 상태인 실제 프레임은 크기가 서로 다르다. 트랜지션을 잠깐 끄고
+        // 두 프레임의 활성 상태를 동시에 뒤바꿔 즉시 같은 크기로 맞춘 다음 그
+        // 크기 차이를 기준으로 스크롤 위치를 보정해야, 바꿔치기 순간 크기가
+        // 어긋나 다른 프레임으로 넘어가 보이거나 깜빡이는 문제가 생기지 않는다.
+        clone.classList.add('no-anim');
+        real.classList.add('no-anim');
+        clone.classList.remove('is-active');
         real.classList.add('is-active');
+        void track.offsetWidth; // 강제 리플로우: 위 클래스 변경을 즉시 반영시킨다
+        const delta = contentX(real) - contentX(clone);
+        track.scrollLeft += delta;
+        void track.offsetWidth;
+        clone.classList.remove('no-anim');
+        real.classList.remove('no-anim');
         activeEl = real;
         activeIndex = frames.indexOf(real);
       }
@@ -921,8 +943,19 @@
         if (direction === 1 && activeIndex === n - 1) targetEl = nearLeadClone;
         else if (direction === -1 && activeIndex === 0) targetEl = nearTrailClone;
         else targetEl = frames[(activeIndex + direction + n) % n];
+        intentionalNav = true;
         setActive(targetEl);
         centerOn(targetEl, 'smooth');
+      }
+
+      // 클릭/자동재생/키보드 등 "목표가 분명한 이동"이 끝난 뒤 마무리 처리:
+      // 복제본이었다면 실제 프레임으로 순간 이동시키고, 정확히 중앙으로 맞춘 다음
+      // 자동 재생을 다시 예약한다. (목표 프레임 자체는 다시 고르지 않는다)
+      function finishIntentionalNav() {
+        resolveCloneIfNeeded();
+        centerOn(activeEl, 'auto');
+        intentionalNav = false;
+        maybeScheduleNext();
       }
 
       function pauseAutoplay() {
@@ -953,6 +986,7 @@
       // 스크롤 중 실시간으로 가장 가까운 프레임을 하이라이트 (드래그 중 자연스러운 시각 피드백)
       function liveUpdateHighlight() {
         liveTicking = false;
+        if (intentionalNav) return; // 목표가 분명한 이동 중에는 목표 프레임을 그대로 유지한다
         const closest = getClosestEl();
         if (closest !== activeEl) setActive(closest);
       }
@@ -964,6 +998,7 @@
         // (포커스가 남으면 마우스가 갤러리를 벗어난 뒤에도 focus 기반 정지 상태가
         //  풀리지 않아 자동 재생이 다시 시작되지 않는 문제가 있었다.)
         e.preventDefault();
+        intentionalNav = false; // 드래그는 목표가 정해지지 않은 자유 스크롤로 취급한다
         dragging = true; moved = false;
         startX = e.pageX;
         startScroll = track.scrollLeft;
@@ -992,6 +1027,7 @@
       allEls().forEach((el) => {
         el.addEventListener('click', () => {
           if (moved) return; // 드래그 끝에 발생한 클릭은 무시
+          intentionalNav = true;
           setActive(el);
           centerOn(el, 'smooth');
         });
@@ -1027,7 +1063,9 @@
         clearTimeout(settleTimer);
         settleTimer = setTimeout(() => {
           scrolling = false;
-          if (!dragging) settleAndSchedule();
+          if (dragging) return;
+          if (intentionalNav) finishIntentionalNav();
+          else settleAndSchedule();
         }, SETTLE_DELAY);
       }, { passive: true });
 
@@ -1038,6 +1076,14 @@
       });
 
       window.addEventListener('resize', () => centerOn(activeEl, 'auto'));
+
+      // 프레임 크기(중앙 확대/축소)가 실제 레이아웃 높이·너비를 바꾸는 방식이라,
+      // 확대·축소 애니메이션이 진행되는 동안 주변 프레임들의 위치도 함께 밀리면서
+      // 처음 계산해 둔 중앙 정렬 목표 지점이 살짝 어긋날 수 있다. 크기 전환이
+      // 끝나는 시점에 한 번 더 정확히 중앙으로 맞춰 보정한다.
+      track.addEventListener('transitionend', (e) => {
+        if (e.propertyName === 'height') centerOn(activeEl, 'auto');
+      });
 
       // 초기 상태: 첫 프레임을 중앙에 맞추고 자동 재생 시작
       setActive(frames[0]);
