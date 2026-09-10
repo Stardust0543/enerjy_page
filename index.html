@@ -132,7 +132,7 @@
     background-size:cover;
     opacity:0;
     transform-origin:center top;
-    animation: slideFade 30s infinite, slideMove 30s infinite;
+    animation: slideFade 37.5s infinite, slideMove 37.5s infinite;
   }
   /* 강의 현장 사진: 인물이 상단쪽에 위치 */
   .hero-bg.lecture{ background-position:center top; }
@@ -146,10 +146,14 @@
     background-color: var(--navy-deep);
   }
 
+  /* 애니메이션 지연은 음수 값이라 절대값이 클수록 더 일찍 등장한다.
+     프로필(b1) 다음으로 site-1→2→3→4 순서로 나오도록 뒤로 갈수록
+     지연 절대값을 작게 준다. */
   .hero-bg.b1{ background-image:url('images/photo-2.jpg'); animation-delay:0s,0s; }
-  .hero-bg.b2{ background-image:url('images/photo-1.jpg'); animation-delay:-7.5s,-7.5s; }
-  .hero-bg.b3{ background-image:url('images/photo-3.jpg'); animation-delay:-15s,-15s; }
-  .hero-bg.b4{ background-image:url('images/photo-5.jpg'); animation-delay:-22.5s,-22.5s; }
+  .hero-bg.b2{ background-image:url('images/hero-site-1.jpg'); animation-delay:-30s,-30s; }
+  .hero-bg.b3{ background-image:url('images/hero-site-2.jpg'); animation-delay:-22.5s,-22.5s; }
+  .hero-bg.b4{ background-image:url('images/hero-site-3.jpg'); animation-delay:-15s,-15s; }
+  .hero-bg.b5{ background-image:url('images/hero-site-4.jpg'); animation-delay:-7.5s,-7.5s; }
 
   @keyframes slideFade{
     0%{opacity:0}
@@ -220,13 +224,6 @@
   .btn-solid:hover{ background:#173A5E; }
   .btn-ghost{ background:rgba(255,255,255,0.08); color:#fff; border-color:rgba(255,255,255,0.5); }
   .btn-ghost:hover{ background:rgba(255,255,255,0.18); }
-  .scroll-cue{
-    position:absolute; left:50%; bottom:22px; transform:translateX(-50%);
-    z-index:2; color:rgba(255,255,255,0.65); font-size:11.5px; letter-spacing:.08em;
-    display:flex; flex-direction:column; align-items:center; gap:8px;
-  }
-  .scroll-cue .line{ width:1px; height:34px; background:linear-gradient(180deg, rgba(255,255,255,0.7), transparent); }
-
   /* STATS */
   .stats{
     background:var(--navy-deep);
@@ -274,7 +271,7 @@
     overscroll-behavior-x:contain;
     -webkit-overflow-scrolling:touch;
     cursor:grab;
-    padding:34px max(32px, 45vw) 40px;
+    padding:34px max(32px, 45%) 40px;
     border-top:1px solid rgba(255,255,255,0.14);
     border-bottom:1px solid rgba(255,255,255,0.14);
     scrollbar-width:thin;
@@ -359,7 +356,7 @@
   }
 
   @media (max-width:900px){
-    .filmstrip-track{ height:240px; padding:22px max(20px, 45vw) 30px; gap:9px; }
+    .filmstrip-track{ height:240px; padding:22px max(20px, 45%) 30px; gap:9px; }
     .filmstrip-frame{ height:60px; } /* 240px의 1/4 */
     .filmstrip-frame.is-active{ height:240px; }
     .filmstrip-nav{ width:38px; height:38px; }
@@ -498,9 +495,6 @@
   }
 
   @media (max-width:900px){
-    /* 모바일에서는 히어로 하단 콘텐츠(아바타 칩/버튼)와 겹치기 쉽고,
-       터치 화면에서는 스크롤 유도 문구가 굳이 필요 없어 숨긴다. */
-    .scroll-cue{ display:none; }
     /* 모바일에서는 사진을 억지로 꽉 채워 자르지 않고(cover),
        전체 인물이 항상 보이도록 레터박스 방식(contain)으로 전환한다.
        빈 여백은 어두운 네이비로 채워 자연스럽게 이어지도록 처리. */
@@ -547,6 +541,7 @@
     <div class="hero-bg lecture b2"></div>
     <div class="hero-bg lecture b3"></div>
     <div class="hero-bg lecture b4"></div>
+    <div class="hero-bg lecture b5"></div>
     <div class="hero-overlay"></div>
     <div class="hero-inner wrap">
       <div class="hero-eyebrow"><span class="dot"></span>Employment Competency Education Specialist</div>
@@ -563,7 +558,6 @@
         </div>
       </div>
     </div>
-    <div class="scroll-cue">SCROLL<div class="line"></div></div>
   </header>
 
   <!-- STATS -->
@@ -598,6 +592,7 @@
       </div>
     </div>
 
+    <div class="wrap">
     <div class="filmstrip-wrap">
     <button type="button" class="filmstrip-nav filmstrip-nav-prev" aria-label="이전 사진">
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
@@ -626,6 +621,7 @@
       <figure class="filmstrip-frame" style="--ar:0.75"><img src="images/gallery-18.jpg" alt="2026.09 진로 워크숍" loading="lazy" draggable="false"><figcaption class="frame-meta"><span class="frame-no">No.18</span><span class="frame-cap">진로 워크숍 · 2026.09</span></figcaption></figure>
       <figure class="filmstrip-frame" style="--ar:0.75"><img src="images/gallery-19.jpg" alt="2026.09 워크숍 활동 자료" loading="lazy" draggable="false"><figcaption class="frame-meta"><span class="frame-no">No.19</span><span class="frame-cap">워크숍 활동 자료 · 2026.09</span></figcaption></figure>
       <figure class="filmstrip-frame" style="--ar:1.332"><img src="images/gallery-20.jpg" alt="2026.09 진로 워크숍" loading="lazy" draggable="false"><figcaption class="frame-meta"><span class="frame-no">No.20</span><span class="frame-cap">진로 워크숍 · 2026.09</span></figcaption></figure>
+    </div>
     </div>
     </div>
     <div class="wrap"><p class="film-hint">드래그하거나 스크롤해서 넘겨보세요</p></div>
@@ -716,7 +712,7 @@
     <div class="wrap">
       <div class="contact-grid">
         <div class="contact-left">
-          <p class="q">함께 일할 수 있는 강사, 공감과 이해를 바탕으로<br>사람 냄새 나고 믿고 맡길 수 있는 강사 이재연입니다.</p>
+          <p class="q">함께 일할 수 있는 강사,<br>공감과 이해를 바탕으로<br>사람 냄새 나고<br>믿고 맡길 수 있는 강사 이재연입니다.</p>
           <div class="name-sign">이재연 · Employment Competency Education Specialist</div>
           <div class="contact-cards">
             <a class="ccard" href="tel:010-5256-7101"><span class="lbl">전화</span><span class="val">010-5256-7101</span></a>
