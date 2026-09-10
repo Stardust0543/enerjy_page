@@ -284,6 +284,20 @@
        현상을 막는다. 프레임들은 이 고정 높이 안에서 항상 수직 중앙 정렬된다. */
     height:320px;
   }
+  .filmstrip-wrap{ position:relative; }
+  .filmstrip-nav{
+    position:absolute; top:50%; margin-top:-4px; /* film-hint 영역만큼 살짝 위로 보정 */
+    transform:translateY(-50%);
+    width:44px; height:44px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(8,26,48,0.55); border:1px solid rgba(255,255,255,0.28);
+    color:#fff; cursor:pointer; z-index:5;
+    transition:background .2s ease, transform .2s ease, border-color .2s ease;
+  }
+  .filmstrip-nav:hover{ background:rgba(44,84,128,0.75); border-color:rgba(255,255,255,0.5); }
+  .filmstrip-nav:active{ transform:translateY(-50%) scale(0.92); }
+  .filmstrip-nav-prev{ left:12px; }
+  .filmstrip-nav-next{ right:12px; }
   .filmstrip-track.is-dragging{ cursor:grabbing; }
   .filmstrip-track::-webkit-scrollbar{ height:5px; }
   .filmstrip-track::-webkit-scrollbar-thumb{ background:rgba(255,255,255,0.2); }
@@ -348,6 +362,9 @@
     .filmstrip-track{ height:240px; padding:22px max(20px, 45vw) 30px; gap:9px; }
     .filmstrip-frame{ height:60px; } /* 240px의 1/4 */
     .filmstrip-frame.is-active{ height:240px; }
+    .filmstrip-nav{ width:38px; height:38px; }
+    .filmstrip-nav-prev{ left:6px; }
+    .filmstrip-nav-next{ right:6px; }
   }
 
   @media (prefers-reduced-motion: reduce){
@@ -581,6 +598,13 @@
       </div>
     </div>
 
+    <div class="filmstrip-wrap">
+    <button type="button" class="filmstrip-nav filmstrip-nav-prev" aria-label="이전 사진">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <button type="button" class="filmstrip-nav filmstrip-nav-next" aria-label="다음 사진">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+    </button>
     <div class="filmstrip-track" id="filmstripTrack" tabindex="0" aria-label="강의 및 워크숍 현장 사진 20장, 좌우로 드래그하거나 스크롤해서 볼 수 있습니다">
       <figure class="filmstrip-frame" style="--ar:1.333"><img src="images/gallery-01.jpg" alt="2018.06.22 현장 강의" loading="lazy" draggable="false"><figcaption class="frame-meta"><span class="frame-no">No.01</span><span class="frame-cap">현장 강의 · 2018.06.22</span></figcaption></figure>
       <figure class="filmstrip-frame" style="--ar:1.333"><img src="images/gallery-02.jpg" alt="2018.06.27 현장 강의" loading="lazy" draggable="false"><figcaption class="frame-meta"><span class="frame-no">No.02</span><span class="frame-cap">현장 강의 · 2018.06.27</span></figcaption></figure>
@@ -602,6 +626,7 @@
       <figure class="filmstrip-frame" style="--ar:0.75"><img src="images/gallery-18.jpg" alt="2026.09 진로 워크숍" loading="lazy" draggable="false"><figcaption class="frame-meta"><span class="frame-no">No.18</span><span class="frame-cap">진로 워크숍 · 2026.09</span></figcaption></figure>
       <figure class="filmstrip-frame" style="--ar:0.75"><img src="images/gallery-19.jpg" alt="2026.09 워크숍 활동 자료" loading="lazy" draggable="false"><figcaption class="frame-meta"><span class="frame-no">No.19</span><span class="frame-cap">워크숍 활동 자료 · 2026.09</span></figcaption></figure>
       <figure class="filmstrip-frame" style="--ar:1.332"><img src="images/gallery-20.jpg" alt="2026.09 진로 워크숍" loading="lazy" draggable="false"><figcaption class="frame-meta"><span class="frame-no">No.20</span><span class="frame-cap">진로 워크숍 · 2026.09</span></figcaption></figure>
+    </div>
     </div>
     <div class="wrap"><p class="film-hint">드래그하거나 스크롤해서 넘겨보세요</p></div>
   </section>
@@ -791,6 +816,9 @@
     (function () {
       const track = document.getElementById('filmstripTrack');
       if (!track) return;
+      const filmstripWrap = track.closest('.filmstrip-wrap') || track.parentElement;
+      const prevBtn = filmstripWrap ? filmstripWrap.querySelector('.filmstrip-nav-prev') : null;
+      const nextBtn = filmstripWrap ? filmstripWrap.querySelector('.filmstrip-nav-next') : null;
       const frames = Array.from(track.querySelectorAll('.filmstrip-frame'));
       const n = frames.length;
       if (!n) return;
@@ -1070,6 +1098,50 @@
       // 드래그 도중 이미지가 링크처럼 클릭되는 것 방지
       track.addEventListener('click', (e) => { if (moved) e.preventDefault(); }, true);
 
+      // 1-1) 모바일 스와이프 — 브라우저 기본 관성 스크롤에 맡기면 빠르게 스와이프할
+      // 때 여러 장이 한꺼번에 휙 넘어가 버린다. 대신 스와이프 방향만 판단해
+      // 클릭/화살표 이동과 똑같이 "한 장씩" 정확히 넘어가도록 만든다.
+      let touchStartX = 0, touchStartY = 0, touchDeciding = true, touchHorizontal = false;
+      const SWIPE_THRESHOLD = 28; // 이 이상 가로로 움직여야 스와이프로 인정
+      track.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1) return;
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        touchDeciding = true;
+        touchHorizontal = false;
+        moved = false;
+        intentionalNav = false;
+        stopScrollAnim();
+        pauseAutoplay();
+      }, { passive: true });
+      track.addEventListener('touchmove', (e) => {
+        if (e.touches.length !== 1) return;
+        const dx = e.touches[0].clientX - touchStartX;
+        const dy = e.touches[0].clientY - touchStartY;
+        if (touchDeciding) {
+          if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return; // 아직 방향을 판단하기엔 너무 작음
+          touchHorizontal = Math.abs(dx) > Math.abs(dy);
+          touchDeciding = false;
+        }
+        if (!touchHorizontal) return; // 세로 방향이면 페이지 스크롤이 정상적으로 되도록 손대지 않는다
+        moved = true;
+        e.preventDefault(); // 가로 스와이프는 브라우저 기본 스크롤 대신 아래 로직으로 직접 처리
+      }, { passive: false });
+      track.addEventListener('touchend', (e) => {
+        if (!touchHorizontal) { maybeScheduleNext(); return; }
+        const t = e.changedTouches && e.changedTouches[0];
+        const dx = t ? (t.clientX - touchStartX) : 0;
+        if (Math.abs(dx) > SWIPE_THRESHOLD) {
+          step(dx < 0 ? 1 : -1); // 왼쪽으로 스와이프 = 다음 사진, 오른쪽으로 스와이프 = 이전 사진
+        } else {
+          maybeScheduleNext();
+        }
+      });
+
+      // 1-2) 좌우 끝의 이전/다음 버튼 — 클릭/화살표 이동과 동일하게 한 장씩 이동한다
+      if (prevBtn) prevBtn.addEventListener('click', () => step(-1));
+      if (nextBtn) nextBtn.addEventListener('click', () => step(1));
+
       // 2) 좌우의 흑백 사진(맨 앞/뒤의 이어붙임용 복제본 포함)을 클릭/터치하면
       //    해당 사진이 중앙으로 이동해 컬러로 확대된다
       allEls().forEach((el) => {
@@ -1083,11 +1155,14 @@
 
       // 3) PC에서 마우스가 갤러리(사진) 위에 있는 동안은 자동 재생을 멈추고,
       //    벗어나면 다시 이어서 진행한다
-      track.addEventListener('mouseenter', () => {
+      // (좌우 넘김 버튼은 track의 형제 요소이므로, track이 아니라 그 둘을
+      //  함께 감싸는 filmstripWrap에 붙여야 버튼 위에 있을 때도 "갤러리 위"로 인식된다)
+      const hoverTarget = filmstripWrap || track;
+      hoverTarget.addEventListener('mouseenter', () => {
         hovering = true;
         pauseAutoplay();
       });
-      track.addEventListener('mouseleave', () => {
+      hoverTarget.addEventListener('mouseleave', () => {
         hovering = false;
         if (!dragging) maybeScheduleNext();
       });
