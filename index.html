@@ -373,9 +373,7 @@
 
   /* EXPERTISE */
   .expertise{ padding:96px 0; background:var(--paper-deep); }
-  .exp-grid{ display:grid; grid-template-columns:1.05fr 0.95fr; gap:56px; align-items:start; }
-  .exp-photo{ position:relative; }
-  .exp-photo img{ border-radius:6px; box-shadow:0 24px 48px -18px rgba(20,20,20,0.3); transform:rotate(0.8deg); }
+  .exp-grid{ display:grid; grid-template-columns:1fr; align-items:start; }
   .exp-list{ list-style:none; }
   .exp-list li{ padding:19px 0; border-bottom:1px solid var(--line); display:flex; gap:16px; align-items:baseline; }
   .exp-list li:first-child{ padding-top:0; }
@@ -514,7 +512,7 @@
     .hero h1{ max-width:100%; }
     .stats .wrap{ grid-template-columns:repeat(2,1fr); row-gap:30px; }
     .stat{ border-left:none !important; padding-left:0 !important; }
-    .phil-grid, .exp-grid, .contact-grid{ grid-template-columns:1fr; }
+    .phil-grid, .contact-grid{ grid-template-columns:1fr; }
     .now-grid{ grid-template-columns:1fr; }
     .venue-grid{ grid-template-columns:repeat(2,1fr); row-gap:30px; }
     .form-row{ grid-template-columns:1fr; }
@@ -650,9 +648,6 @@
             <span>공감 중심 소통</span>
             <span>실제 사례 기반</span>
           </div>
-        </div>
-        <div class="exp-photo">
-          <img src="images/photo-4.jpg" alt="이재연 강사">
         </div>
       </div>
     </div>
