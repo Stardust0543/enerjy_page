@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://stardust0543.github.io/enerjy_page/sitemap.xml
